@@ -8,19 +8,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # Required for full git history and merging
 
-      - name: Setup Git
+      - name: Set up Git identity
         run: |
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Promote main to prod
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
         run: |
           git fetch origin
-          git checkout prod
+
+          # Ensure prod branch exists locally and tracks remote
+          if git show-ref --verify --quiet refs/heads/prod; then
+            git checkout prod
+          else
+            git checkout -b prod origin/prod
+          fi
+
+          # Merge main into prod
           git merge origin/main --no-edit
-          git push origin prod
+
+          # Push to prod branch using PAT
+          git push https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}.git prod
