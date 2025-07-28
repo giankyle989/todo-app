@@ -11,7 +11,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Required for full git history and merging
+          fetch-depth: 0
 
       - name: Set up Git identity
         run: |
@@ -23,8 +23,8 @@ jobs:
           GH_PAT: ${{ secrets.GH_PAT }}
         run: |
           git fetch origin
-
-          # Ensure prod branch exists locally and tracks remote
+          
+          # Ensure prod branch exists locally
           if git show-ref --verify --quiet refs/heads/prod; then
             git checkout prod
           else
@@ -34,5 +34,5 @@ jobs:
           # Merge main into prod
           git merge origin/main --no-edit
 
-          # Push to prod branch using PAT
+          # Push using PAT (required for permission)
           git push https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}.git prod
