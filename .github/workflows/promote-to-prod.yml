@@ -27,7 +27,7 @@ jobs:
 
           git fetch origin
 
-          # Checkout or create prod branch
+          # Checkout prod
           if git show-ref --quiet refs/heads/prod; then
             git checkout prod
           else
@@ -36,11 +36,7 @@ jobs:
 
           git merge origin/main --no-edit
 
-          # ✅ Authenticate remote with token
+          # 🔥 Set authenticated remote with token injected into the URL
           git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}.git
 
-          # Verify remote URL
-          git remote -v
-
-          # ✅ Push changes using the token-authenticated remote
           git push origin prod
