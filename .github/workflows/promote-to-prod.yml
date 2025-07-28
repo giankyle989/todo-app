@@ -13,6 +13,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Debug Token Use (TEMP)
+        run: |
+          echo "PAT length: ${#GH_PAT}"
+          echo "Repo: ${{ github.repository }}"
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+
+
       - name: Set up Git identity
         run: |
           git config --global user.name "github-actions[bot]"
