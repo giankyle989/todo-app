@@ -1,13 +1,39 @@
-- name: Promote main to prod
-  env:
-    GH_PAT: ${{ secrets.GH_PAT }}
-  run: |
-    git fetch origin
-    git checkout prod
-    git merge origin/main --no-edit
+name: Promote main to prod
 
-    # ✅ Set remote to use PAT
-    git remote set-url origin https://x-access-token:$GH_PAT@github.com/${{ github.repository }}.git
+on:
+  workflow_dispatch:
 
-    # ✅ Push to prod
-    git push origin prod
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Git identity
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Promote main to prod
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          git fetch origin
+
+          # Check out or create prod branch tracking origin/prod
+          if git show-ref --quiet refs/heads/prod; then
+            git checkout prod
+          else
+            git checkout -b prod origin/prod
+          fi
+
+          git merge origin/main --no-edit
+
+          # ✅ Force git to use PAT for pushing
+          git remote set-url origin https://x-access-token:$GH_PAT@github.com/${{ github.repository }}.git
+
+          git push origin prod
