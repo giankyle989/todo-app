@@ -22,8 +22,12 @@ jobs:
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
         run: |
+          echo "Repo: ${{ github.repository }}"
+          echo "Token length: ${#GH_PAT}"
+
           git fetch origin
 
+          # Checkout prod
           if git show-ref --quiet refs/heads/prod; then
             git checkout prod
           else
@@ -32,7 +36,12 @@ jobs:
 
           git merge origin/main --no-edit
 
-          # 🔥 This is the most important part
-          git remote set-url origin https://x-access-token:$GH_PAT@github.com/${{ github.repository }}.git
+          # 🔥 Reset origin to use PAT
+          git remote remove origin
+          git remote add origin https://x-access-token:$GH_PAT@github.com/${{ github.repository }}.git
 
+          # 🔍 Debug remote URL
+          git remote -v
+
+          # ✅ Push to prod using the new remote
           git push origin prod
