@@ -23,16 +23,6 @@ jobs:
           GH_PAT: ${{ secrets.GH_PAT }}
         run: |
           git fetch origin
-          
-          # Ensure prod branch exists locally
-          if git show-ref --verify --quiet refs/heads/prod; then
-            git checkout prod
-          else
-            git checkout -b prod origin/prod
-          fi
-
-          # Merge main into prod
+          git checkout prod
           git merge origin/main --no-edit
-
-          # Push using PAT (required for permission)
           git push https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}.git prod
