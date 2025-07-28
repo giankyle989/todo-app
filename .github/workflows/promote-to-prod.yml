@@ -1,0 +1,26 @@
+name: Promote main to prod
+
+on:
+  workflow_dispatch:
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Git
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
+      - name: Promote main to prod
+        run: |
+          git fetch origin
+          git checkout prod
+          git merge origin/main --no-edit
+          git push origin prod
