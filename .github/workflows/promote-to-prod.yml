@@ -23,25 +23,14 @@ jobs:
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
         run: |
-          echo "Using repository: ${{ github.repository }}"
-
           git fetch origin
-
-          # Switch to prod or create it
           if git show-ref --quiet refs/heads/prod; then
             git checkout prod
           else
             git checkout -b prod origin/prod
           fi
-
-          # Merge main into prod
           git merge origin/main --no-edit
-
-          # ✅ Overwrite the remote to use personal token
-          git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}
-
-          # Debug: show remotes
-          git remote -v
-
-          # ✅ Push to prod
+      
+          # ✅ Correct remote using fully expanded Bash variables
+          git remote set-url origin https://x-access-token:$GH_PAT@github.com/${GITHUB_REPOSITORY}.git
           git push origin prod
