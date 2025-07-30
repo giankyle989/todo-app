@@ -4,24 +4,34 @@ on:
   workflow_dispatch:
 
 jobs:
-  promote:
+  validate-token:
     runs-on: ubuntu-latest
+    env:
+      GH_PAT: ${{ secrets.GH_PAT }}
+    steps:
+      - name: Check if GH_PAT works
+        run: |
+          echo "Testing token access..."
+          git clone https://x-access-token:$GH_PAT@github.com/${GITHUB_REPOSITORY}.git test-repo
+          echo "✅ Token works and has access."
 
+  promote:
+    needs: validate-token  # Only run if token is valid
+    runs-on: ubuntu-latest
+    env:
+      GH_PAT: ${{ secrets.GH_PAT }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          persist-credentials: false # ✅ Disable default bot token
 
       - name: Set up Git identity
         run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Promote main to prod
-        env:
-          GH_PAT: ${{ secrets.GH_PAT }}
         run: |
           git fetch origin
           if git show-ref --quiet refs/heads/prod; then
@@ -30,7 +40,5 @@ jobs:
             git checkout -b prod origin/prod
           fi
           git merge origin/main --no-edit
-      
-          # ✅ Correct remote using fully expanded Bash variables
           git remote set-url origin https://x-access-token:$GH_PAT@github.com/${GITHUB_REPOSITORY}.git
           git push origin prod
