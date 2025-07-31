@@ -18,38 +18,39 @@ jobs:
       - name: SSH Deploy to EC2
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USER }}
-          key: ${{ secrets.PROD_SSH_KEY }}
-          port: 22
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             echo "✅ Connected to EC2 successfully."
-
             echo "🔍 Checking current directory:"
             pwd
-
+      
             echo "📂 Listing home directory:"
             ls -la ~
-
-            echo "🚀 Changing to project path: ${{ secrets.PROD_PATH }}"
-            cd ${{ secrets.PROD_PATH }} || { echo '❌ Failed to cd into project path'; exit 1; }
-
+      
+            echo "🚀 Changing to project path: /opt/todo-app"
+            cd /opt/todo-app || { echo '❌ Failed to cd into project path'; exit 1; }
+      
             echo "📂 Listing project directory:"
             ls -la
-
+      
+            echo "✅ Marking directory as safe for Git..."
+            git config --global --add safe.directory $(pwd)
+      
             echo "🔄 Fetching from Git origin..."
             git fetch origin || { echo '❌ Git fetch failed'; exit 1; }
-
+      
             echo "🔁 Resetting to origin.prod"
             git reset --hard origin.prod || { echo '❌ Git reset failed'; exit 1; }
-
+      
             echo "📦 Installing dependencies..."
             npm install || { echo '❌ npm install failed'; exit 1; }
-
+      
             echo "🏗️ Building the project..."
             npm run build || { echo '❌ Build failed'; exit 1; }
-
+      
             echo "🔁 Restarting PM2..."
             pm2 restart todo-app || { echo '❌ PM2 restart failed'; exit 1; }
-
+      
             echo "✅ Deployment complete."
