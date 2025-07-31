@@ -1,0 +1,87 @@
+name: Promote and Deploy to Production
+
+on:
+  workflow_dispatch:
+
+jobs:
+  validate-token:
+    runs-on: ubuntu-latest
+    env:
+      GH_PAT: ${{ secrets.GH_PAT }}
+    steps:
+      - name: Check if GH_PAT works
+        run: |
+          echo "🔑 Testing token access..."
+          git clone https://x-access-token:$GH_PAT@github.com/${GITHUB_REPOSITORY}.git test-repo
+          echo "✅ Token works and has access."
+
+  promote:
+    needs: validate-token
+    runs-on: ubuntu-latest
+    env:
+      GH_PAT: ${{ secrets.GH_PAT }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Git identity
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Promote main to prod
+        run: |
+          git fetch origin
+          if git show-ref --quiet refs/heads/prod; then
+            git checkout prod
+          else
+            git checkout -b prod origin/prod
+          fi
+          git merge origin/main --no-edit
+
+          echo "🔄 Resetting remote with token"
+          git remote remove origin
+          git remote add origin https://x-access-token:$GH_PAT@github.com/${GITHUB_REPOSITORY}.git
+
+          git push origin prod
+          echo "✅ Promoted main to prod."
+
+  deploy:
+    name: Deploy to EC2 Production
+    needs: promote
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: SSH Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ubuntu
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            echo "✅ Connected to EC2 successfully."
+            echo "🚀 Changing to project path: /opt/todo-app"
+            cd /opt/todo-app || { echo '❌ Failed to cd into project path'; exit 1; }
+
+            echo "✅ Marking directory as safe for Git..."
+            git config --global --add safe.directory $(pwd)
+
+            echo "🔄 Fetching and resetting to origin/prod..."
+            git fetch origin +refs/heads/*:refs/remotes/origin/*
+            git reset --hard origin/prod || { echo '❌ Git reset failed'; exit 1; }
+
+            echo "📦 Installing dependencies..."
+            npm install || { echo '❌ npm install failed'; exit 1; }
+
+            echo "🏗️ Building the project..."
+            npm run build || { echo '❌ Build failed'; exit 1; }
+
+            echo "🔁 Restarting PM2..."
+            pm2 restart todo-app || { echo '❌ PM2 restart failed'; exit 1; }
+
+            echo "✅ Deployment complete."
