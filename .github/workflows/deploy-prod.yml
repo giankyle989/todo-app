@@ -42,7 +42,8 @@ jobs:
             git fetch origin || { echo '❌ Git fetch failed'; exit 1; }
       
             echo "🔁 Resetting to origin.prod"
-            git reset --hard origin.prod || { echo '❌ Git reset failed'; exit 1; }
+            git fetch origin +refs/heads/*:refs/remotes/origin/*
+            git reset --hard origin/prod
       
             echo "📦 Installing dependencies..."
             npm install || { echo '❌ npm install failed'; exit 1; }
